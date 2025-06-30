@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Budget Planner</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7fa;
+      color: #333;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #2c3e50;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .sidebar h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+    }
+
+    h2, h3 {
+      border-bottom: 2px solid #eee;
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+
+    input, select, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background: #3498db;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .summary {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .summary div {
+      margin: 10px;
+      flex: 1 1 120px;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #fff;
+      border-radius: 5px;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+
+    th {
+      background: #3498db;
+      color: #fff;
+    }
+
+    tr:hover {
+      background: #f1f1f1;
+    }
+
+    .goal-progress {
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .progress-bar {
+      background: #eee;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 20px;
+      margin-top: 5px;
+    }
+
+    .progress-fill {
+      background: #2ecc71;
+      height: 100%;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h1>💰 Budget Planner</h1>
+    <p>Plan your spending,<br>meet your goals.</p>
+  </div>
+  <div class="content">
+    <h2>Add Transaction</h2>
+    <select id="type">
+      <option value="income">Income</option>
+      <option value="expense">Expense</option>
+    </select>
+    <input type="text" id="category" placeholder="Category (e.g., Groceries)">
+    <input type="number" id="amount" placeholder="Amount" min="0" step="0.01">
+    <button onclick="addTransaction()">Add Transaction</button>
+
+    <h2>Set Savings Goal</h2>
+    <input type="number" id="goal" placeholder="Savings goal amount" min="0" step="0.01">
+    <button onclick="setGoal()">Set Goal</button>
+
+    <h2>Summary</h2>
+    <div class="summary">
+      <div>
+        <strong>Total Income</strong><br>
+        $<span id="totalIncome">0.00</span>
+      </div>
+      <div>
+        <strong>Total Expenses</strong><br>
+        $<span id="totalExpenses">0.00</span>
+      </div>
+      <div>
+        <strong>Balance</strong><br>
+        $<span id="balance">0.00</span>
+      </div>
+    </div>
+
+    <div class="goal-progress">
+      <strong>Goal Progress</strong><br>
+      Goal Amount: $<span id="goalAmount">0.00</span><br>
+      Saved So Far: $<span id="savedSoFar">0.00</span><br>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <small><span id="progressPercent">0</span>% complete</small>
+    </div>
+
+    <h2>Transactions</h2>
+    <table id="transactionTable">
+      <thead>
+        <tr><th>Type</th><th>Category</th><th>Amount</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const transactions = [];
+    let savingsGoal = 0;
+
+    function addTransaction() {
+      const type = document.getElementById('type').value;
+      const category = document.getElementById('category').value.trim();
+      const amount = parseFloat(document.getElementById('amount').value);
+
+      if (!category || isNaN(amount) || amount <= 0) {
+        alert('Please enter valid category and amount.');
+        return;
+      }
+
+      transactions.push({ type, category, amount });
+      updateSummary();
+      renderTransactions();
+
+      document.getElementById('category').value = '';
+      document.getElementById('amount').value = '';
+    }
+
+    function setGoal() {
+      const goalInput = parseFloat(document.getElementById('goal').value);
+      if (isNaN(goalInput) || goalInput <= 0) {
+        alert('Please enter a valid savings goal.');
+        return;
+      }
+      savingsGoal = goalInput;
+      updateSummary();
+      document.getElementById('goal').value = '';
+    }
+
+    function updateSummary() {
+      let totalIncome = 0;
+      let totalExpenses = 0;
+
+      transactions.forEach(t => {
+        if (t.type === 'income') totalIncome += t.amount;
+        else totalExpenses += t.amount;
+      });
+
+      const balance = totalIncome - totalExpenses;
+      const savedSoFar = Math.max(0, balance);
+
+      document.getElementById('totalIncome').textContent = totalIncome.toFixed(2);
+      document.getElementById('totalExpenses').textContent = totalExpenses.toFixed(2);
+      document.getElementById('balance').textContent = balance.toFixed(2);
+
+      document.getElementById('goalAmount').textContent = savingsGoal.toFixed(2);
+      document.getElementById('savedSoFar').textContent = savedSoFar.toFixed(2);
+
+      const progress = savingsGoal > 0 ? Math.min(100, (savedSoFar / savingsGoal) * 100) : 0;
+      document.getElementById('progressPercent').textContent = progress.toFixed(1);
+
+      document.getElementById('progressFill').style.width = progress + '%';
+    }
+
+    function renderTransactions() {
+      const tbody = document.getElementById('transactionTable').querySelector('tbody');
+      tbody.innerHTML = '';
+
+      transactions.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${t.type.charAt(0).toUpperCase() + t.type.slice(1)}</td>
+          <td>${t.category}</td>
+          <td>$${t.amount.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
